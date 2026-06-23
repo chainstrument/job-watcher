@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SourceType {
+  RSS
+  API_JSON
+}
+
+enum JobStatus {
+  NEW
+  SEEN
+  SAVED
+  IGNORED
+}
+
+model Source {
+  id          String     @id @default(cuid())
+  name        String
+  url         String
+  type        SourceType
+  enabled     Boolean    @default(true)
+  tags        String[]
+  createdAt   DateTime   @default(now())
+  jobs        Job[]
+  collectLogs CollectLog[]
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  externalId   String
+  contentHash  String?   @unique
+  title        String
+  company      String?
+  location     String?
+  contractType String?
+  stack        String[]
+  description  String?
+  url          String
+  publishedAt  DateTime?
+  sourceId     String
+  source       Source    @relation(fields: [sourceId], references: [id])
+  userStatus   UserJobStatus?
+  createdAt    DateTime  @default(now())
+
+  @@unique([externalId, sourceId])
+}
+
+model UserJobStatus {
+  jobId     String    @id
+  job       Job       @relation(fields: [jobId], references: [id])
+  status    JobStatus @default(NEW)
+  note      String?
+  updatedAt DateTime  @updatedAt
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  name      String
+  keywords  String[]
+  stack     String[]
+  location  String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model CollectLog {
+  id        String   @id @default(cuid())
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id])
+  status    String
+  jobsFound Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now())
+}
