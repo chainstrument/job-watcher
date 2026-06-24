@@ -28,6 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/sources" className="text-sm text-gray-500 hover:text-gray-800">
                 Sources
               </Link>
+              <Link href="/stats" className="text-sm text-gray-500 hover:text-gray-800">
+                Stats
+              </Link>
             </div>
             <Suspense fallback={null}>
               <DashboardStats />

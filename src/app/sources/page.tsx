@@ -9,7 +9,7 @@ export default async function SourcesPage() {
     orderBy: { createdAt: 'desc' },
     include: {
       _count: { select: { jobs: true } },
-      collectLogs: { orderBy: { createdAt: 'desc' }, take: 1 },
+      collectLogs: { orderBy: { createdAt: 'desc' }, take: 10 },
     },
   })
 
