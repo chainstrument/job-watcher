@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Job, Source, UserJobStatus } from '@/generated/prisma/client'
 
 type JobWithRelations = Job & {
@@ -12,15 +13,19 @@ function timeAgo(date: Date): string {
   return `${Math.floor(seconds / 86400)}j`
 }
 
+const statusStyle: Record<string, string> = {
+  SAVED: 'border-l-4 border-l-green-400',
+  IGNORED: 'opacity-50',
+}
+
 export function JobCard({ job }: { job: JobWithRelations }) {
   const isNew = !job.userStatus || job.userStatus.status === 'NEW'
+  const status = job.userStatus?.status ?? 'NEW'
 
   return (
-    <a
-      href={job.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-400 hover:shadow-sm transition-all"
+    <Link
+      href={`/jobs/${job.id}`}
+      className={`block bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-400 hover:shadow-sm transition-all ${statusStyle[status] ?? ''}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -30,32 +35,24 @@ export function JobCard({ job }: { job: JobWithRelations }) {
                 New
               </span>
             )}
+            {status === 'SAVED' && (
+              <span className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                Sauvegardée
+              </span>
+            )}
             <h3 className="font-medium text-gray-900 truncate">{job.title}</h3>
           </div>
 
           <div className="flex items-center gap-3 text-sm text-gray-500">
             {job.company && <span>{job.company}</span>}
-            {job.location && (
-              <>
-                <span>·</span>
-                <span>{job.location}</span>
-              </>
-            )}
-            {job.contractType && (
-              <>
-                <span>·</span>
-                <span>{job.contractType}</span>
-              </>
-            )}
+            {job.location && <><span>·</span><span>{job.location}</span></>}
+            {job.contractType && <><span>·</span><span>{job.contractType}</span></>}
           </div>
 
           {job.stack.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {job.stack.slice(0, 6).map((tech) => (
-                <span
-                  key={tech}
-                  className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded"
-                >
+                <span key={tech} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
                   {tech}
                 </span>
               ))}
@@ -68,6 +65,6 @@ export function JobCard({ job }: { job: JobWithRelations }) {
           <div>{timeAgo(job.createdAt)}</div>
         </div>
       </div>
-    </a>
+    </Link>
   )
 }
