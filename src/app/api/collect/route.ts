@@ -80,7 +80,12 @@ export async function POST(request: Request) {
       .filter((m) => m.jobs.length > 0)
 
     if (matches.length > 0) {
-      await sendAlertEmail(matches).catch(console.error)
+      try {
+        await sendAlertEmail(matches)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        errors.push({ source: 'email', error: message })
+      }
     }
   }
 
