@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Geist } from 'next/font/google'
+import { DashboardStats } from '@/components/DashboardStats'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -16,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <h1 className="text-lg font-semibold tracking-tight">Job Watcher</h1>
-            <span className="text-sm text-gray-500">offres dev web</span>
+            <Suspense fallback={null}>
+              <DashboardStats />
+            </Suspense>
           </div>
         </header>
         <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
