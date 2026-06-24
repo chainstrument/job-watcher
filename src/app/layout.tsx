@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { Geist } from 'next/font/google'
 import { DashboardStats } from '@/components/DashboardStats'
+import { auth, signOut } from '@/auth'
 import './globals.css'
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
   description: 'Agrégateur d\'offres d\'emploi web developer',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+
   return (
     <html lang="fr" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-full bg-gray-50 text-gray-900">
@@ -32,9 +35,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Stats
               </Link>
             </div>
-            <Suspense fallback={null}>
-              <DashboardStats />
-            </Suspense>
+            <div className="flex items-center gap-4">
+              <Suspense fallback={null}>
+                <DashboardStats />
+              </Suspense>
+              {session && (
+                <form
+                  action={async () => {
+                    'use server'
+                    await signOut({ redirectTo: '/login' })
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="text-xs text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                  >
+                    Déconnexion
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </header>
         <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
