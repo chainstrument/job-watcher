@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCollector } from '@/collectors/registry'
 import { matchesAlert } from '@/lib/match-alert'
 import { sendAlertEmail } from '@/lib/send-alert-email'
+import { computeContentHash } from '@/lib/content-hash'
 import type { NormalizedJob } from '@/collectors/types'
 import type { Job } from '@/generated/prisma/client'
 
@@ -30,26 +31,41 @@ export async function POST(request: Request) {
         const jobs: NormalizedJob[] = await collector.collect(source)
         clearTimeout(timeout)
 
-        // Collect externalIds already in DB to detect truly new ones
         const existingIds = new Set(
-          (await prisma.job.findMany({
-            where: {
-              externalId: { in: jobs.map((j) => j.externalId) },
-              sourceId: source.id,
-            },
-            select: { externalId: true },
-          })).map((j) => j.externalId)
+          (
+            await prisma.job.findMany({
+              where: { externalId: { in: jobs.map((j) => j.externalId) }, sourceId: source.id },
+              select: { externalId: true },
+            })
+          ).map((j) => j.externalId)
+        )
+
+        // Skip cross-source duplicates via contentHash
+        const existingHashes = new Set(
+          (
+            await prisma.job.findMany({
+              where: { contentHash: { in: jobs.map(computeContentHash).filter(Boolean) } },
+              select: { contentHash: true },
+            })
+          ).map((j) => j.contentHash!)
+        )
+
+        const toInsert = jobs.filter(
+          (j) => !existingIds.has(j.externalId) && !existingHashes.has(computeContentHash(j))
         )
 
         await prisma.job.createMany({
-          data: jobs.map((job) => ({ ...job, sourceId: source.id })),
+          data: toInsert.map((job) => ({
+            ...job,
+            sourceId: source.id,
+            contentHash: computeContentHash(job),
+          })),
           skipDuplicates: true,
         })
 
-        // Fetch inserted jobs to pass to alert matching
         const inserted = await prisma.job.findMany({
           where: {
-            externalId: { in: jobs.filter((j) => !existingIds.has(j.externalId)).map((j) => j.externalId) },
+            externalId: { in: toInsert.map((j) => j.externalId) },
             sourceId: source.id,
           },
         })
@@ -72,7 +88,6 @@ export async function POST(request: Request) {
     })
   )
 
-  // Check alerts and send email if matches found
   if (newJobs.length > 0) {
     const alerts = await prisma.alert.findMany({ where: { enabled: true } })
     const matches = alerts
